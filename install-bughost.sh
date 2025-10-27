@@ -215,8 +215,12 @@ echo -e "${BLUE}Xray servisini root olarak yapılandırılıyor...${NC}"
 if [ -f /etc/systemd/system/xray.service ]; then
     # Servis dosyasını güncelle - nobody yerine root kullan
     sed -i 's/User=nobody/User=root/g' /etc/systemd/system/xray.service
-    sed -i '/^User=nobody/d' /etc/systemd/system/xray.service
+    # Log ve config dizinlerine tam izin ver
+    chmod -R 755 /var/log/xray
+    chmod -R 755 /etc/xray
+    # Daemon'ı yeniden yükle
     systemctl daemon-reload
+    echo -e "${GREEN}✓ Servis dosyası root kullanıcısı için yapılandırıldı${NC}"
 fi
 
 # Xray servisini etkinleştir ve başlat
