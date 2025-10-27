@@ -184,9 +184,15 @@ cat > "$CONFIG_FILE" << EOF
 }
 EOF
 
-# Log dizini oluştur
+# Log dizini oluştur ve izinleri ayarla
 mkdir -p /var/log/xray
+chown -R nobody:nogroup /var/log/xray 2>/dev/null || chown -R nobody:nobody /var/log/xray
 chmod 755 /var/log/xray
+
+# Config dizini izinlerini ayarla
+chown -R nobody:nogroup "$CONFIG_DIR" 2>/dev/null || chown -R nobody:nobody "$CONFIG_DIR"
+chmod 755 "$CONFIG_DIR"
+chmod 644 "$CONFIG_FILE"
 
 echo -e "${GREEN}Config dosyası test ediliyor...${NC}"
 if ! xray run -test -c "$CONFIG_FILE" 2>&1 | grep -q "Configuration OK"; then
