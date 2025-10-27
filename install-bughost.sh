@@ -79,6 +79,9 @@ fi
 echo -e "${GREEN}[5/8] Self-signed TLS sertifikası oluşturuluyor...${NC}"
 mkdir -p /etc/xray/certs
 openssl req -x509 -newkey rsa:4096 -keyout /etc/xray/certs/key.pem -out /etc/xray/certs/cert.pem -days 3650 -nodes -subj "/CN=${SERVER_IP}" 2>/dev/null
+
+# Xray servisi nobody kullanıcısı olarak çalıştığı için izinleri ayarla
+chown nobody:nogroup /etc/xray/certs/key.pem /etc/xray/certs/cert.pem 2>/dev/null || chown nobody:nobody /etc/xray/certs/key.pem /etc/xray/certs/cert.pem
 chmod 644 /etc/xray/certs/cert.pem
 chmod 600 /etc/xray/certs/key.pem
 echo -e "${BLUE}✓ TLS sertifikası oluşturuldu${NC}"
