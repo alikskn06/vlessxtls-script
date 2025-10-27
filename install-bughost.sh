@@ -212,16 +212,41 @@ ufw --force reload
 
 # Xray servis dosyasını root kullanıcısı için yeniden yapılandır
 echo -e "${BLUE}Xray servisini root olarak yapılandırılıyor...${NC}"
-if [ -f /etc/systemd/system/xray.service ]; then
-    # Servis dosyasını güncelle - nobody yerine root kullan
-    sed -i 's/User=nobody/User=root/g' /etc/systemd/system/xray.service
-    # Log ve config dizinlerine tam izin ver
-    chmod -R 755 /var/log/xray
-    chmod -R 755 /etc/xray
-    # Daemon'ı yeniden yükle
-    systemctl daemon-reload
-    echo -e "${GREEN}✓ Servis dosyası root kullanıcısı için yapılandırıldı${NC}"
-fi
+
+# Servis dosyasını tamamen yeniden yaz
+cat > /etc/systemd/system/xray.service << 'SERVICEEOF'
+[Unit]
+Description=Xray Service
+Documentation=https://github.com/xtls
+After=network.target nss-lookup.target
+
+[Service]
+User=root
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE
+AmbientCapabilities=CAP_NET_ADMIN CAP_NET_BIND_SERVICE
+NoNewPrivileges=true
+ExecStart=/usr/local/bin/xray run -config /usr/local/etc/xray/config.json
+Restart=on-failure
+RestartPreventExitStatus=23
+LimitNPROC=10000
+LimitNOFILE=1000000
+
+[Install]
+WantedBy=multi-user.target
+SERVICEEOF
+
+# Eski log dosyalarını temizle ve yeniden oluştur
+rm -f /var/log/xray/access.log /var/log/xray/error.log
+touch /var/log/xray/access.log /var/log/xray/error.log
+chmod 644 /var/log/xray/access.log /var/log/xray/error.log
+
+# Log ve config dizinlerine tam izin ver
+chmod -R 755 /var/log/xray
+chmod -R 755 /etc/xray
+
+# Daemon'ı yeniden yükle
+systemctl daemon-reload
+echo -e "${GREEN}✓ Servis dosyası root kullanıcısı için yapılandırıldı${NC}"
 
 # Xray servisini etkinleştir ve başlat
 systemctl enable xray
