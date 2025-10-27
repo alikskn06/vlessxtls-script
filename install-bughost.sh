@@ -213,6 +213,10 @@ ufw --force reload
 # Xray servis dosyasını root kullanıcısı için yeniden yapılandır
 echo -e "${BLUE}Xray servisini root olarak yapılandırılıyor...${NC}"
 
+# Drop-in override dosyalarını sil (bunlar servis dosyasını override ediyor)
+rm -rf /etc/systemd/system/xray.service.d
+rm -rf /etc/systemd/system/xray@.service.d
+
 # Servis dosyasını tamamen yeniden yaz
 cat > /etc/systemd/system/xray.service << 'SERVICEEOF'
 [Unit]
