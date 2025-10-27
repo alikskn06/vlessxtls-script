@@ -80,8 +80,7 @@ echo -e "${GREEN}[5/8] Self-signed TLS sertifikası oluşturuluyor...${NC}"
 mkdir -p /etc/xray/certs
 openssl req -x509 -newkey rsa:4096 -keyout /etc/xray/certs/key.pem -out /etc/xray/certs/cert.pem -days 3650 -nodes -subj "/CN=${SERVER_IP}" 2>/dev/null
 
-# Xray servisi nobody kullanıcısı olarak çalıştığı için izinleri ayarla
-chown nobody:nogroup /etc/xray/certs/key.pem /etc/xray/certs/cert.pem 2>/dev/null || chown nobody:nobody /etc/xray/certs/key.pem /etc/xray/certs/cert.pem
+# Sertifika izinlerini ayarla
 chmod 644 /etc/xray/certs/cert.pem
 chmod 600 /etc/xray/certs/key.pem
 echo -e "${BLUE}✓ TLS sertifikası oluşturuldu${NC}"
@@ -184,15 +183,9 @@ cat > "$CONFIG_FILE" << EOF
 }
 EOF
 
-# Log dizini oluştur ve izinleri ayarla
+# Log dizini oluştur
 mkdir -p /var/log/xray
-chown -R nobody:nogroup /var/log/xray 2>/dev/null || chown -R nobody:nobody /var/log/xray
 chmod 755 /var/log/xray
-
-# Config dizini izinlerini ayarla
-chown -R nobody:nogroup "$CONFIG_DIR" 2>/dev/null || chown -R nobody:nobody "$CONFIG_DIR"
-chmod 755 "$CONFIG_DIR"
-chmod 644 "$CONFIG_FILE"
 
 echo -e "${GREEN}Config dosyası test ediliyor...${NC}"
 if ! xray run -test -c "$CONFIG_FILE" 2>&1 | grep -q "Configuration OK"; then
@@ -216,6 +209,15 @@ ufw default allow outgoing
 ufw allow ${PORT}/tcp
 ufw allow 22/tcp
 ufw --force reload
+
+# Xray servis dosyasını root kullanıcısı için yeniden yapılandır
+echo -e "${BLUE}Xray servisini root olarak yapılandırılıyor...${NC}"
+if [ -f /etc/systemd/system/xray.service ]; then
+    # Servis dosyasını güncelle - nobody yerine root kullan
+    sed -i 's/User=nobody/User=root/g' /etc/systemd/system/xray.service
+    sed -i '/^User=nobody/d' /etc/systemd/system/xray.service
+    systemctl daemon-reload
+fi
 
 # Xray servisini etkinleştir ve başlat
 systemctl enable xray
