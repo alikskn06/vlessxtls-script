@@ -226,18 +226,25 @@ fi
 # Xray servisini etkinleştir ve başlat
 systemctl enable xray
 systemctl restart xray
-sleep 3
 
-# Servis durumu kontrol
-if ! systemctl is-active --quiet xray; then
-    echo -e "${RED}Xray başlatılamadı!${NC}"
-    echo -e "${YELLOW}Son loglar:${NC}"
-    journalctl -u xray -n 30 --no-pager
-    rm -f "$UUIDS_FILE"
-    exit 1
-fi
-
-echo -e "${GREEN}✓ Xray başarıyla çalışıyor!${NC}"
+# Servisin başlamasını bekle (retry logic)
+echo -e "${BLUE}Xray servisinin başlaması bekleniyor...${NC}"
+for i in {1..10}; do
+    sleep 1
+    if systemctl is-active --quiet xray; then
+        echo -e "${GREEN}✓ Xray servisi başarıyla başlatıldı!${NC}"
+        break
+    fi
+    if [ $i -eq 10 ]; then
+        echo -e "${RED}Xray başlatılamadı!${NC}"
+        echo -e "${YELLOW}Son loglar:${NC}"
+        journalctl -u xray -n 30 --no-pager
+        echo -e "${YELLOW}Servis durumu:${NC}"
+        systemctl status xray --no-pager
+        rm -f "$UUIDS_FILE"
+        exit 1
+    fi
+done
 
 # Bağlantı bilgileri dosyası oluştur
 INFO_FILE="/root/xray-bughost-info.txt"
